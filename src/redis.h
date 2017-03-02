@@ -1395,6 +1395,7 @@ void brpopCommand(redisClient *c);
 void brpoplpushCommand(redisClient *c);
 void appendCommand(redisClient *c);
 void prependCommand(redisClient *c);
+void prependfeCommand(redisClient *c);
 void strlenCommand(redisClient *c);
 void zrankCommand(redisClient *c);
 void zrevrankCommand(redisClient *c);

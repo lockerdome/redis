@@ -262,11 +262,8 @@ sds sdsprecatlen(sds s, const void *t, size_t len) {
     s = sdsMakeRoomFor(s,len);
     if (s == NULL) return NULL;
     sh = (void*) (s-(sizeof(struct sdshdr)));
-
     memmove(s+len, s, curlen);
     memcpy(s, t, len);
-//    memcpy(s+curlen, t, len);
-
     sh->len = curlen+len;
     sh->free = sh->free-len;
     s[curlen+len] = '\0';
