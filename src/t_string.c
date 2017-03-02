@@ -439,6 +439,81 @@ void appendCommand(redisClient *c) {
     addReplyLongLong(c,totlen);
 }
 
+void prependCommand(redisClient *c) {
+    size_t totlen;
+    robj *o, *prepend;
+
+    o = lookupKeyWrite(c->db,c->argv[1]);
+    if (o == NULL) {
+        /* Create the key */
+        c->argv[2] = tryObjectEncoding(c->argv[2]);
+        dbAdd(c->db,c->argv[1],c->argv[2]);
+        incrRefCount(c->argv[2]);
+        totlen = stringObjectLen(c->argv[2]);
+    } else {
+        /* Key exists, check type */
+        if (checkType(c,o,REDIS_STRING))
+            return;
+
+        /* "prepend" is an argument, so always an sds */
+        prepend = c->argv[2];
+        totlen = stringObjectLen(o)+sdslen(prepend->ptr);
+        if (checkStringLength(c,totlen) != REDIS_OK)
+            return;
+
+        /* Prepend the value */
+        o = dbUnshareStringValue(c->db,c->argv[1],o);
+        o->ptr = sdsprecatlen(o->ptr,prepend->ptr,sdslen(prepend->ptr));
+        totlen = sdslen(o->ptr);
+    }
+    signalModifiedKey(c->db,c->argv[1]);
+    notifyKeyspaceEvent(REDIS_NOTIFY_STRING,"prepend",c->argv[1],c->db->id);
+    server.dirty++;
+    addReplyLongLong(c,totlen);
+}
+
+void prependfeCommand(redisClient *c) {
+    size_t totlen;
+    robj *o, *prepend;
+
+    o = lookupKeyWrite(c->db,c->argv[1]);
+    if (o == NULL) {
+        /* Create the key */
+        c->argv[2] = tryObjectEncoding(c->argv[2]);
+        dbAdd(c->db,c->argv[1],c->argv[2]);
+        incrRefCount(c->argv[2]);
+        totlen = stringObjectLen(c->argv[2]);
+    } else {
+        /* Key exists, check type */
+        if (checkType(c,o,REDIS_STRING))
+            return;
+
+        /* "prepend" is an argument, so always an sds */
+        prepend = c->argv[2];
+        totlen = stringObjectLen(o)+sdslen(prepend->ptr);
+        if (checkStringLength(c,totlen) != REDIS_OK)
+            return;
+
+        /* Check to see if the first bytes match */
+        /* if they do, no change is needed */
+        if(((char*)o->ptr)[0] == ((char*)prepend->ptr)[0]){
+          addReplyLongLong(c,stringObjectLen(o));
+          return;
+        }
+
+        /* Prepend the value */
+        else {
+          o = dbUnshareStringValue(c->db,c->argv[1],o);
+          o->ptr = sdsprecatlen(o->ptr,prepend->ptr,sdslen(prepend->ptr));
+          totlen = sdslen(o->ptr);
+        }
+    }
+    signalModifiedKey(c->db,c->argv[1]);
+    notifyKeyspaceEvent(REDIS_NOTIFY_STRING,"prepend",c->argv[1],c->db->id);
+    server.dirty++;
+    addReplyLongLong(c,totlen);
+}
+
 void strlenCommand(redisClient *c) {
     robj *o;
     if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.czero)) == NULL ||

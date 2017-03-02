@@ -250,6 +250,26 @@ sds sdscatlen(sds s, const void *t, size_t len) {
     return s;
 }
 
+/* Prepend the specified binary-safe string pointed by 't' of 'len' bytes to the
+ * beginning of the specified sds string 's'.
+ *
+ * After the call, the passed sds string is no longer valid and all the
+ * references must be substituted with the new pointer returned by the call. */
+sds sdsprecatlen(sds s, const void *t, size_t len) {
+    struct sdshdr *sh;
+    size_t curlen = sdslen(s);
+
+    s = sdsMakeRoomFor(s,len);
+    if (s == NULL) return NULL;
+    sh = (void*) (s-(sizeof(struct sdshdr)));
+    memmove(s+len, s, curlen);
+    memcpy(s, t, len);
+    sh->len = curlen+len;
+    sh->free = sh->free-len;
+    s[curlen+len] = '\0';
+    return s;
+}
+
 /* Append the specified null termianted C string to the sds string 's'.
  *
  * After the call, the passed sds string is no longer valid and all the
